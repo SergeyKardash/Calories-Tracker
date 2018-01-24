@@ -34,10 +34,19 @@ const ItemCtrl = (function(){
 
   // Public method
   return {
-    getItems: function (){
+    getItems: function() {
       return data.items
     },
-    logData: function(){
+    getItemsById: function(id) {
+      let found = null
+      data.items.forEach(function(item){
+        if (item.id === id) {
+          found = item;
+        }
+      });
+      return found;
+    },
+    logData: function() {
       return data
     },
     addItem: function (name, calories) {
@@ -65,7 +74,11 @@ const ItemCtrl = (function(){
 
       data.totalCalories = total
       return data.totalCalories
-      }
+    },
+    setCurrentItem: function(item){
+      data.currentItem = item;
+    }
+    
   }
 
 })();
@@ -75,9 +88,13 @@ const UICtrl = (function(){
   const UISelectors = {
     itemList: '#item-list',
     addBtn: '.add-btn',
+    updateBtn: '.update-btn',
+    deleteBtn: '.delete-btn',
+    backBtn: '.back-btn',
     itemName: '#item-name',
     itemCalories: '#item-calories',
-    totalCalories: '.total-calories'
+    totalCalories: '.total-calories',
+    editBtn: '.edit-item'
   }
 
   // Public method
@@ -135,6 +152,25 @@ const UICtrl = (function(){
     showTotalCalories: function(totalCalories){
       const total = document.querySelector(UISelectors.totalCalories)
       total.textContent = totalCalories
+    },
+    clearEditState: function() {
+      UICtrl.clearInput()
+      document.querySelector(UISelectors.updateBtn).style.display = 'none',
+      document.querySelector(UISelectors.deleteBtn).style.display = 'none',
+      document.querySelector(UISelectors.backBtn).style.display = 'none',
+      document.querySelector(UISelectors.addBtn).style.display = 'inline-block'
+    },
+    showEditState: function() {
+      document.querySelector(UISelectors.updateBtn).style.display = 'inline-block',
+      document.querySelector(UISelectors.deleteBtn).style.display = 'inline-block',
+      document.querySelector(UISelectors.backBtn).style.display = 'inline-block',
+      document.querySelector(UISelectors.addBtn).style.display = 'none'
+    },
+    addItemToForm: function() {
+      const item = ItemCtrl.logData().currentItem;
+      document.querySelector(UISelectors.itemName).value = item.name;
+      document.querySelector(UISelectors.itemCalories).value = item.calories;
+      UICtrl.showEditState()
     }
   }
 })();
@@ -148,6 +184,9 @@ const App = (function(ItemCtrl, UICtrl){
 
     // Add item event
     document.querySelector(UISelectors.addBtn).addEventListener('click', itemAddSubmit)
+
+    // Edit item event
+    document.querySelector(UISelectors.itemList).addEventListener('click', itemUpdateSubmit)
   }
     // Add item submit
     const itemAddSubmit = function (e){
@@ -156,12 +195,33 @@ const App = (function(ItemCtrl, UICtrl){
 
       if (input.name !== '' && input.calories !== '') {
         const newItem = ItemCtrl.addItem (input.name, input.calories)
-      }
+      
       UICtrl.addItemList(newItem);
-      UICtrl.clearInput()
-      UICtrl.hideList()
-      const totalCalories = ItemCtrl.getTotalCalories()
-      UICtrl.showTotalCalories(totalCalories)
+      UICtrl.clearInput();
+      UICtrl.hideList();
+      const totalCalories = ItemCtrl.getTotalCalories();
+      UICtrl.showTotalCalories(totalCalories);
+      e.preventDefault()
+    };
+    }
+
+    // Edit item
+    const itemUpdateSubmit = function (e) {
+      
+      // Get ID
+      if (e.target.classList.contains('edit-item')){
+        const listId = e.target.parentElement.parentElement.id;
+        const listIdArr = listId.split('-');
+        const id  = parseInt(listIdArr[1]);
+      
+      // Get Item
+        const itemToEdit = ItemCtrl.getItemsById(id);
+      // Set current Item
+        ItemCtrl.setCurrentItem(itemToEdit);
+      // Add item to form
+        UICtrl.addItemToForm();
+      }
+
       e.preventDefault()
     }
   
@@ -169,6 +229,7 @@ const App = (function(ItemCtrl, UICtrl){
   // Public method
   return {
     init: function(){
+      UICtrl.clearEditState();
       // Fetch items from data
       const items = ItemCtrl.getItems();
 
@@ -176,7 +237,8 @@ const App = (function(ItemCtrl, UICtrl){
       UICtrl.populateItemsList(items)
 
       loadEventListenes();
-      UICtrl.hideList()
+      UICtrl.hideList();
+    
     }
   }
 
